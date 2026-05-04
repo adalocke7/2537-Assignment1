@@ -11,6 +11,9 @@ const saltRounds = 10;
 const app = express();
 const port = process.env.PORT || 3000;
 
+const path = require('path');
+app.use(express.static(path.join(__dirname, 'Public')));
+
 
 const mongodb_host = process.env.MONGODB_HOST;
 const mongodb_user = process.env.MONGODB_USER;
@@ -25,6 +28,12 @@ const userCollection = database.db(mongodb_user_database).collection('Users');
 
 app.use(express.urlencoded({extended: false}));
 app.use(express.json());
+
+function getRandomInt(min, max) {
+  min = Math.ceil(min);
+  max = Math.floor(max);
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
 
 
 var mongoStore = MongoStore.create({
@@ -52,7 +61,7 @@ app.get('/', (req, res) => {
 });
 
 app.get('/signup', (req, res) => {
-  res.send('<h1>Signup Page</h1> <form action="/signingup" method="POST"><input type="text" name="username" placeholder="Username" required><input type="email" name="email" placeholder="Email" required><input type="password" name="password" placeholder="Password" required><button type="submit">Signup</button></form>');
+  res.send('<h1>Signup Page</h1> <form action="/signingup" method="POST"><input type="text" name="username" placeholder="Username" required><input type="email" name="email" placeholder="Email" required><input type="password" name="password" placeholder="Password" required><button type="submit">Signup</button></form><a href="/login">Already have an account? Login here</a>');
 });
 
 app.post('/signingup', async (req, res) => {
@@ -67,7 +76,7 @@ app.post('/signingup', async (req, res) => {
   const valuation = schema.validate({ username, email, password });
   if (valuation.error) {
   console.error(valuation.error.details[0].message); // see exact error
-  res.send(`Error: ${valuation.error.details[0].message} <a href="/signup">Go back</a>`);
+  res.send(`Error: Incorrect inputted format <a href="/signup">Go back</a>`);
   return;
   }
 
@@ -79,7 +88,7 @@ app.post('/signingup', async (req, res) => {
 });
 
 app.get('/login', (req, res) => {
-  res.send('<h1>Login Page</h1> <form action="/logingin" method="POST"><input type="email" name="email" placeholder="Email" required><input type="password" name="password" placeholder="Password" required><button type="submit">Login</button></form>');
+  res.send('<h1>Login Page</h1> <form action="/logingin" method="POST"><input type="email" name="email" placeholder="Email" required><input type="password" name="password" placeholder="Password" required><button type="submit">Login</button></form><a href="/signup">Don\'t have an account? Signup here</a>');
 });
 
 app.post('/logingin', async (req, res) => {
@@ -92,15 +101,14 @@ app.post('/logingin', async (req, res) => {
 
   const validationResult = schema.validate({ email, password });
   if (validationResult.error) {
-    console.log(validationResult.error);
-    res.redirect('/login');
+    res.send('Error: Incorrect inputted format <a href="/login">Go back</a>');
     return;
   }
 
   const result = await userCollection.find({ email: email }).project({email: 1, username: 1, password: 1, _id: 1}).toArray();
 
   if (result.length != 1) {
-    res.redirect('/login');
+    res.send('Error: Invalid email or password <a href="/login">Go back</a>');
     return;
   }
   if (await bcrypt.compare(password, result[0].password)) {
@@ -110,17 +118,33 @@ app.post('/logingin', async (req, res) => {
     res.redirect('/members');
     return;
   } else {
-    res.redirect('/login');
+    res.send('Error: Invalid email or password <a href="/login">Go back</a>');
     return;
   }
 });
 
 app.get('/members', (req, res) => {
   if (!req.session.authenticated) {
-    res.redirect('/login');
+    res.send('Error: Please login first <a href="/login">Login</a>');
     return;
   } else {
-    res.send('<h1>Members Area</h1><a href="/logout">Logout</a>');
+    const randomInt = getRandomInt(1, 4);
+    switch(randomInt) {
+      case 1:
+        res.send(`<h1>Members Area</h1><p>Welcome, ${req.session.username}!</p><img src="./duck1.png" alt="Random Image"><a href="/logout">Logout</a>`);
+        break;
+      case 2:
+        res.send(`<h1>Members Area</h1><p>Welcome, ${req.session.username}!</p><img src="./duck2.png" alt="Random Image"><a href="/logout">Logout</a>`);
+        break;
+      case 3:
+        res.send(`<h1>Members Area</h1><p>Welcome, ${req.session.username}!</p><img src="./duck3.png" alt="Random Image"><a href="/logout">Logout</a>`);
+        break;
+      case 4:
+        res.send(`<h1>Members Area</h1><p>Welcome, ${req.session.username}!</p><img src="./duck4.png" alt="Random Image"><a href="/logout">Logout</a>`);
+        break;
+      default:
+        res.send(`<h1>Members Area</h1><p>Welcome, ${req.session.username}!</p><img src="./duck1.png" alt="Random Image"><a href="/logout">Logout</a>`);
+    }
   }
 });
 
