@@ -10,6 +10,7 @@ const saltRounds = 10;
 
 const app = express();
 const port = process.env.PORT || 3000;
+const expireTime = 60 * 60 * 1000; // 1 hour in milliseconds
 
 const path = require('path');
 app.use(express.static(path.join(__dirname, 'Public')));
@@ -115,6 +116,7 @@ app.post('/logingin', async (req, res) => {
     req.session.authenticated = true;
     req.session.email = email;
     req.session.username = result[0].username;
+    req.session.cookie.maxAge = expireTime;
     res.redirect('/members');
     return;
   } else {
